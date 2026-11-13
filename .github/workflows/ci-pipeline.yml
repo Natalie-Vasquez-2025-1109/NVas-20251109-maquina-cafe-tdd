@@ -1,0 +1,46 @@
+name: CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar entorno
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restaurar dependencias
+        run: dotnet restore CafeTdd.sln
+
+      - name: Compilar proyecto
+        run: dotnet build CafeTdd.sln --configuration Release --no-restore
+
+      - name: Ejecutar pruebas
+        run: dotnet test CafeTdd.sln --configuration Release --no-build --verbosity normal
+
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar entorno
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publicar aplicación
+        run: dotnet publish src/CafeTdd.App/CafeTdd.App.csproj --configuration Release --output publish
+
+      - name: Guardar artefacto de despliegue
+        uses: actions/upload-artifact@v4
+        with:
+          name: maquina-cafe
+          path: publish
